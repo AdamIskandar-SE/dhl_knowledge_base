@@ -92,6 +92,70 @@ function readUsers() {
     return JSON.parse(data);
 }
 
+function getUserFromHeaders(req) {
+    const id = req.header('x-user-id');
+    const role = req.header('x-user-role');
+    return {
+        id: id ? parseInt(id, 10) : null,
+        role: role || null
+    };
+}
+
+function requireAuth(req, res, next) {
+    const user = getUserFromHeaders(req);
+    if (!user.id || !user.role) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+}
+
+function authorizeRoles(allowedRoles) {
+    return (req, res, next) => {
+        const role = req.header('x-user-role');
+        if (!role || !allowedRoles.includes(role)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+        next();
+    };
+}
+
+function authorizeStatusChange(req, res, next) {
+    const role = req.header('x-user-role');
+    const { status } = req.body;
+
+    if (!role) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!status) {
+        return res.status(400).json({ error: 'Status is required' });
+    }
+
+    if (status === 'published') {
+        if (!['admin', 'reviewer'].includes(role)) {
+            return res.status(403).json({ error: 'Only admin and reviewer can publish articles' });
+        }
+    } else if (status === 'reviewed') {
+        if (!['admin', 'editor', 'reviewer'].includes(role)) {
+            return res.status(403).json({ error: 'Insufficient permission to review article' });
+        }
+    } else if (status === 'draft') {
+        if (!['admin', 'editor'].includes(role)) {
+            return res.status(403).json({ error: 'Only admin and editor can set draft status' });
+        }
+    } else {
+        return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    next();
+}
+
+app.use('/api', (req, res, next) => {
+    if (req.path === '/login') {
+        return next();
+    }
+    return requireAuth(req, res, next);
+});
+
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     const users = readUsers();
@@ -133,7 +197,7 @@ app.get('/api/articles/:id', (req, res) => {
     article ? res.json(article) : res.status(404).json({ error: 'Not found' });
 });
 
-app.post('/api/articles', upload.array('attachments', 5), (req, res) => {
+app.post('/api/articles', authorizeRoles(['admin', 'editor']), upload.array('attachments', 5), (req, res) => {
     const articles = readArticles();
     const { title, content, summary, tags, createdBy, status } = req.body;
     
@@ -160,7 +224,7 @@ app.post('/api/articles', upload.array('attachments', 5), (req, res) => {
     res.status(201).json(newArticle);
 });
 
-app.put('/api/articles/:id', (req, res) => {
+app.put('/api/articles/:id', authorizeRoles(['admin', 'editor']), (req, res) => {
     let articles = readArticles();
     const index = articles.findIndex(a => a.id === parseInt(req.params.id));
     
@@ -178,7 +242,7 @@ app.put('/api/articles/:id', (req, res) => {
     res.json(articles[index]);
 });
 
-app.patch('/api/articles/:id/status', (req, res) => {
+app.patch('/api/articles/:id/status', authorizeStatusChange, (req, res) => {
     let articles = readArticles();
     const index = articles.findIndex(a => a.id === parseInt(req.params.id));
     
@@ -196,7 +260,7 @@ app.patch('/api/articles/:id/status', (req, res) => {
     res.json(articles[index]);
 });
 
-app.delete('/api/articles/:id', (req, res) => {
+app.delete('/api/articles/:id', authorizeRoles(['admin']), (req, res) => {
     let articles = readArticles();
     const filtered = articles.filter(a => a.id !== parseInt(req.params.id));
     
@@ -216,7 +280,7 @@ app.post('/api/ai/summarize', (req, res) => {
     res.json({ title, summary, tags: ['auto-generated'] });
 });
 
-app.post('/api/rpa/ingest', (req, res) => {
+app.post('/api/rpa/ingest', authorizeRoles(['admin']), (req, res) => {
     const { content, sourceType } = req.body;
     const articles = readArticles();
     

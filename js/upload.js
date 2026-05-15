@@ -9,6 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     currentUser = getCurrentUser();
     setupLogout();
+
+    if (currentUser.role === 'reviewer') {
+        showError('Reviewers cannot create or upload articles. Redirecting to View Articles.');
+        setTimeout(() => window.location.href = 'view-articles.html', 1800);
+        return;
+    }
+
     setupTabs();
     setupFileUpload();
     setupFormSubmit();
@@ -113,7 +120,7 @@ async function handleTextSubmit(e) {
     }
 }
 
-async function processWithAI() {
+async function handleTextAIProcess() {
     const content = document.getElementById('content')?.value;
     if (!content) {
         showError('Please enter some content to process');
@@ -140,7 +147,7 @@ async function processWithAI() {
     }
 }
 
-async function uploadFiles() {
+async function handleFileUpload() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput?.files;
     

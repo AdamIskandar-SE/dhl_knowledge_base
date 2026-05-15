@@ -79,7 +79,7 @@
                         <button type="submit" class="btn-primary">
                             <i class="fas fa-save"></i> Save Changes
                         </button>
-                        <button type="button" class="btn-secondary" onclick="processWithAI()">
+                        <button type="button" class="btn-secondary" id="aiEnhanceBtn" onclick="handleAIEnhancement()">
                             <i class="fas fa-robot"></i> Enhance with AI
                         </button>
                         <button type="button" class="btn-outline" onclick="window.location.href='view-articles.html'">
@@ -123,6 +123,28 @@
             }
             
             await loadArticle();
+
+            const statusSelect = document.getElementById('status');
+            if (currentUser.role === 'editor') {
+                const publishOption = statusSelect?.querySelector('option[value="published"]');
+                if (publishOption) publishOption.remove();
+            }
+
+            if (currentUser.role === 'reviewer') {
+                document.querySelectorAll('#editForm input, #editForm textarea, #editForm select, #editForm button').forEach(el => {
+                    if (el.id !== 'status') {
+                        el.setAttribute('disabled', 'true');
+                    }
+                });
+
+                const saveButton = document.querySelector('#editForm button[type="submit"]');
+                if (saveButton) saveButton.style.display = 'none';
+
+                const aiButton = document.getElementById('aiEnhanceBtn');
+                if (aiButton) aiButton.style.display = 'none';
+
+                showError('Reviewers cannot edit article content. Use View Articles to review or publish.');
+            }
         });
         
         async function loadArticle() {
@@ -215,7 +237,7 @@
         });
         
         // AI Enhancement
-        async function processWithAI() {
+        async function handleAIEnhancement() {
             const content = document.getElementById('content').value;
             if (!content) {
                 showError('Please enter some content to enhance');

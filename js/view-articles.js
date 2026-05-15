@@ -5,10 +5,12 @@
 let allArticles = [];
 let currentPage = 1;
 const articlesPerPage = 9;
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!protectPage()) return;
     
+    currentUser = getCurrentUser();
     setupLogout();
     loadArticles();
     setupEventListeners();
@@ -120,6 +122,9 @@ function renderArticles(articles) {
         return;
     }
     
+    const canEdit = ['admin', 'editor'].includes(currentUser?.role);
+    const canDelete = currentUser?.role === 'admin';
+
     container.innerHTML = paginated.map(article => `
         <div class="article-card">
             <div class="article-header">
@@ -143,12 +148,16 @@ function renderArticles(articles) {
                     <button class="action-btn" onclick="viewArticle(${article.id})" title="View">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="action-btn" onclick="editArticle(${article.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn delete" onclick="deleteArticle(${article.id})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${canEdit ? `
+                        <button class="action-btn" onclick="editArticle(${article.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    ` : ''}
+                    ${canDelete ? `
+                        <button class="action-btn delete" onclick="handleArticleDelete(${article.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         </div>
@@ -213,8 +222,7 @@ async function viewArticle(id) {
                     ` : ''}
                 </div>
                 <div class="action-buttons" style="margin-top: 20px;">
-                    <button class="btn-primary" onclick="updateArticleStatus(${article.id}, 'reviewed')">Submit for Review</button>
-                    <button class="btn-primary" onclick="updateArticleStatus(${article.id}, 'published')">Publish</button>
+                    ${getStatusActionButtons(article)}
                     <button class="btn-secondary" onclick="closeModal()">Close</button>
                 </div>
             `;
@@ -227,7 +235,7 @@ async function viewArticle(id) {
     }
 }
 
-async function updateArticleStatus(id, newStatus) {
+async function handleArticleStatusUpdate(id, newStatus) {
     try {
         await updateArticleStatus(id, newStatus);
         await loadArticles();
@@ -239,7 +247,40 @@ async function updateArticleStatus(id, newStatus) {
     }
 }
 
-async function deleteArticle(id) {
+function getStatusActionButtons(article) {
+    if (!currentUser) return '';
+
+    const buttons = [];
+    const role = currentUser.role;
+
+    if (role === 'admin') {
+        if (article.status !== 'reviewed') {
+            buttons.push(`<button class="btn-primary" onclick="handleArticleStatusUpdate(${article.id}, 'reviewed')">Submit for Review</button>`);
+        }
+        if (article.status !== 'published') {
+            buttons.push(`<button class="btn-primary" onclick="handleArticleStatusUpdate(${article.id}, 'published')">Publish</button>`);
+        }
+    } else if (role === 'editor') {
+        if (article.status === 'draft') {
+            buttons.push(`<button class="btn-primary" onclick="handleArticleStatusUpdate(${article.id}, 'reviewed')">Submit for Review</button>`);
+        }
+    } else if (role === 'reviewer') {
+        if (article.status !== 'reviewed') {
+            buttons.push(`<button class="btn-primary" onclick="handleArticleStatusUpdate(${article.id}, 'reviewed')">Mark Reviewed</button>`);
+        }
+        if (article.status !== 'published') {
+            buttons.push(`<button class="btn-primary" onclick="handleArticleStatusUpdate(${article.id}, 'published')">Publish</button>`);
+        }
+    }
+
+    if (buttons.length === 0) {
+        return '<span style="color: #666; font-size: 14px;">No status actions available for your role.</span>';
+    }
+
+    return buttons.join('');
+}
+
+async function handleArticleDelete(id) {
     if (confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
         try {
             await deleteArticle(id);

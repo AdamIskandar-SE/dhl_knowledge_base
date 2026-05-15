@@ -5,6 +5,14 @@
 
 const API_BASE_URL = '/api';
 
+function getAuthHeaders() {
+    const user = getCurrentUser();
+    return user ? {
+        'X-User-Id': user.id,
+        'X-User-Role': user.role
+    } : {};
+}
+
 /**
  * Generic fetch wrapper with error handling
  */
@@ -12,7 +20,8 @@ async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     const defaultOptions = {
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
         }
     };
     
@@ -117,11 +126,13 @@ async function uploadFiles(formData) {
     try {
         const response = await fetch(url, {
             method: 'POST',
+            headers: getAuthHeaders(),
             body: formData
         });
         
         if (!response.ok) {
-            throw new Error('Upload failed');
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || 'Upload failed');
         }
         
         return await response.json();
