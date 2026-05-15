@@ -11,6 +11,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
+// Add this to fix MIME types in Codespaces
+app.use('/css', express.static(path.join(__dirname, '../css'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+    }
+}));
+
+app.use('/js', express.static(path.join(__dirname, '../js'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
+
 const storage = multer.diskStorage({
     destination: './uploads/',
     filename: (req, file, cb) => {
