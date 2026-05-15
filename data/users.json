@@ -1,0 +1,29 @@
+[
+    {
+        "id": 1,
+        "username": "admin",
+        "password": "admin123",
+        "role": "admin",
+        "email": "admin@dhl.com",
+        "fullName": "Administrator",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+        "id": 2,
+        "username": "editor",
+        "password": "editor123",
+        "role": "editor",
+        "email": "editor@dhl.com",
+        "fullName": "Content Editor",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+        "id": 3,
+        "username": "reviewer",
+        "password": "reviewer123",
+        "role": "reviewer",
+        "email": "reviewer@dhl.com",
+        "fullName": "Content Reviewer",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+    }
+]

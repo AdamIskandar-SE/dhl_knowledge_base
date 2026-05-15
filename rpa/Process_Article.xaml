@@ -1,0 +1,114 @@
+<Activity x:Class="Process_Article" 
+    xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" 
+    xmlns:ui="http://schemas.uipath.com/workflow/activities" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    
+    <Sequence DisplayName="Process Article with AI">
+        
+        <!-- Input Arguments -->
+        <ui:InArgument x:TypeArguments="x:String" x:Name="inContent" />
+        <ui:InArgument x:TypeArguments="x:String" x:Name="inFileName" />
+        <ui:InArgument x:TypeArguments="x:String" x:Name="inFileType" />
+        
+        <!-- Output Arguments -->
+        <ui:OutArgument x:TypeArguments="x:Int32" x:Name="outArticleId" />
+        
+        <!-- Local Variables -->
+        <Sequence.Variables>
+            <Variable x:TypeArguments="x:String" Name="strAIResponse" />
+            <Variable x:TypeArguments="JObject" Name="joAIResult" />
+            <Variable x:TypeArguments="x:String" Name="strTitle" />
+            <Variable x:TypeArguments="x:String" Name="strSummary" />
+            <Variable x:TypeArguments="x:String" Name="strTags" />
+            <Variable x:TypeArguments="x:String" Name="strCreateResponse" />
+            <Variable x:TypeArguments="JObject" Name="joCreateResponse" />
+            <Variable x:TypeArguments="x:String" Name="strEscapedContent" />
+        </Sequence.Variables>
+        
+        <!-- Escape Content for JSON -->
+        <ui:InvokeCode DisplayName="Escape JSON Content" 
+                       Code="strEscapedContent = inContent.Replace(&quot;\&quot;&quot;, &quot;\\&quot;&quot;).Replace(vbCrLf, &quot;\n&quot;).Replace(vbLf, &quot;\n&quot;)">
+            <ui:InArgument x:TypeArguments="x:String" x:Name="inContent" />
+            <ui:OutArgument x:TypeArguments="x:String" x:Name="strEscapedContent" />
+        </ui:InvokeCode>
+        
+        <!-- Call AI API to Process Content -->
+        <ui:HttpRequest DisplayName="Call AI Summarization API" 
+                        Url="http://localhost:3000/api/ai/summarize"
+                        Method="POST"
+                        ContentType="application/json"
+                        Body="[&quot;{&#92;&quot;content&#92;&quot;:&#92;&quot;&quot; + strEscapedContent + &quot;&#92;&quot;}&quot;]"
+                        ResponseContent="[strAIResponse]" />
+        
+        <!-- Parse AI Response -->
+        <ui:DeserializeJson DisplayName="Parse AI Response" 
+                            JsonString="[strAIResponse]">
+            <ui:DeserializeJson.Result>
+                <OutArgument x:TypeArguments="JObject">[joAIResult]</OutArgument>
+            </ui:DeserializeJson.Result>
+        </ui:DeserializeJson>
+        
+        <!-- Extract AI Generated Fields -->
+        <ui:Assign x:TypeArguments="x:String" DisplayName="Extract Title">
+            <ui:To>[strTitle]</ui:To>
+            <ui:From>[If(joAIResult(&quot;title&quot;) IsNot Nothing, joAIResult(&quot;title&quot;).ToString(), &quot;RPA Import: &quot; + inFileName)]</ui:From>
+        </ui:Assign>
+        
+        <ui:Assign x:TypeArguments="x:String" DisplayName="Extract Summary">
+            <ui:To>[strSummary]</ui:To>
+            <ui:From>[If(joAIResult(&quot;summary&quot;) IsNot Nothing, joAIResult(&quot;summary&quot;).ToString(), &quot;Processed by RPA automation from &quot; + inFileType + &quot; file&quot;)]</ui:From>
+        </ui:Assign>
+        
+        <ui:Assign x:TypeArguments="x:String" DisplayName="Extract Tags">
+            <ui:To>[strTags]</ui:To>
+            <ui:From>[If(joAIResult(&quot;tags&quot;) IsNot Nothing, joAIResult(&quot;tags&quot;).ToString(), &quot;rpa-imported,&quot; + inFileType)]</ui:From>
+        </ui:Assign>
+        
+        <!-- Build Create Article Request Body -->
+        <ui:Assign x:TypeArguments="x:String" DisplayName="Build Request Body">
+            <ui:To>[strEscapedContent]</ui:To>
+            <ui:From>
+                <InArgument x:TypeArguments="x:String">
+                    <ui:MultiLineText>
+                        <ui:MultiLineText.Text>
+                            {&#92;"title&#92;":&#92;"&lt;![CDATA[ + strTitle + ]]&gt;&#92;",
+                             &#92;"content&#92;":&#92;"&lt;![CDATA[ + inContent + ]]&gt;&#92;",
+                             &#92;"summary&#92;":&#92;"&lt;![CDATA[ + strSummary + ]]&gt;&#92;",
+                             &#92;"tags&#92;":[&lt;![CDATA[ + strTags + ]]&gt;],
+                             &#92;"createdBy&#92;":&#92;"rpa-bot&#92;",
+                             &#92;"sourceType&#92;":&#92;"rpa-automated&#92;",
+                             &#92;"status&#92;":&#92;"draft&#92;",
+                             &#92;"fileHash&#92;":&#92;"&lt;![CDATA[ + inFileName.GetHashCode().ToString() + ]]&gt;&#92;}
+                        </ui:MultiLineText.Text>
+                    </ui:MultiLineText>
+                </InArgument>
+            </ui:From>
+        </ui:Assign>
+        
+        <!-- Create Article via API -->
+        <ui:HttpRequest DisplayName="Create Article via API" 
+                        Url="http://localhost:3000/api/articles"
+                        Method="POST"
+                        ContentType="application/json"
+                        Body="[strEscapedContent]"
+                        ResponseContent="[strCreateResponse]" />
+        
+        <!-- Parse Create Response -->
+        <ui:DeserializeJson DisplayName="Parse Create Response" 
+                            JsonString="[strCreateResponse]">
+            <ui:DeserializeJson.Result>
+                <OutArgument x:TypeArguments="JObject">[joCreateResponse]</OutArgument>
+            </ui:DeserializeJson.Result>
+        </ui:DeserializeJson>
+        
+        <!-- Extract Article ID -->
+        <ui:Assign x:TypeArguments="x:Int32" DisplayName="Extract Article ID">
+            <ui:To>[outArticleId]</ui:To>
+            <ui:From>[CInt(joCreateResponse(&quot;id&quot;).ToString())]</ui:From>
+        </ui:Assign>
+        
+        <ui:WriteLine DisplayName="Log Article Created" 
+                      Text="[&quot;[INFO] Article created with ID: &quot; + outArticleId.ToString() + &quot; - Title: &quot; + strTitle]" />
+        
+    </Sequence>
+</Activity>

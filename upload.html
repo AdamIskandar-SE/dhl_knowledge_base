@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Article - DHL Knowledge Base</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-robot"></i> DHL KB Auto
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="upload.html" class="active">Upload</a>
+            <a href="view-articles.html">View Articles</a>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div>
+                <span id="userName"></span>
+                <div class="user-role" id="userRole"></div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-upload"></i> Create Knowledge Article</h2>
+                <p>Convert raw information into structured knowledge base articles</p>
+            </div>
+            <div class="card-body">
+                <div class="success-message" id="successMsg"></div>
+                <div class="error-message" id="errorMsg"></div>
+
+                <div class="input-tabs">
+                    <button class="tab-btn active" data-tab="text">Text Input</button>
+                    <button class="tab-btn" data-tab="file">File Upload</button>
+                    <button class="tab-btn" data-tab="ai">AI Process</button>
+                </div>
+
+                <!-- Text Input Tab -->
+                <div id="textTab" class="tab-pane active">
+                    <form id="textForm">
+                        <div class="form-group">
+                            <label>Title <span style="color: red;">*</span></label>
+                            <input type="text" id="title" placeholder="Enter article title">
+                        </div>
+                        <div class="form-group">
+                            <label>Content <span style="color: red;">*</span></label>
+                            <textarea id="content" placeholder="Paste your raw text, chat messages, email threads, or instructions here..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Tags (comma separated)</label>
+                            <input type="text" id="tags" placeholder="e.g., logistics, shipping, customs">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="status">
+                                <option value="draft">Draft</option>
+                                <option value="reviewed">Submit for Review</option>
+                            </select>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Create Article
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="processWithAI()">
+                                <i class="fas fa-robot"></i> Process with AI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- File Upload Tab -->
+                <div id="fileTab" class="tab-pane">
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click to upload or drag and drop</p>
+                        <small>Supports: PDF, DOCX, TXT, PNG, JPG (Max 10MB)</small>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" multiple>
+                    <div id="fileList" style="margin-top: 16px;"></div>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>Status</label>
+                        <select id="fileStatus">
+                            <option value="draft">Draft</option>
+                            <option value="reviewed">Submit for Review</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="uploadFiles()">
+                            <i class="fas fa-upload"></i> Upload & Create
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Processing Tab -->
+                <div id="aiTab" class="tab-pane">
+                    <div class="form-group">
+                        <label>Raw Input for AI Processing</label>
+                        <textarea id="aiRawInput" rows="6" placeholder="Paste messy content here (chat logs, email threads, handwritten notes, etc.)..."></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="processRawWithAI()">
+                            <i class="fas fa-magic"></i> Generate Article with AI
+                        </button>
+                    </div>
+                    <div id="aiResult" class="ai-processing"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+        <p>Processing... This may take a moment.</p>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/upload.js"></script>
+</body>
+</html>

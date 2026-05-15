@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Articles - DHL Knowledge Base</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-robot"></i> DHL KB Auto
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="upload.html">Upload</a>
+            <a href="view-articles.html" class="active">View Articles</a>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div>
+                <span id="userName"></span>
+                <div class="user-role" id="userRole"></div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="filters-card">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label><i class="fas fa-search"></i> Search</label>
+                    <input type="text" id="searchInput" placeholder="Title, content, summary...">
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-tag"></i> Tag</label>
+                    <input type="text" id="tagFilter" placeholder="Filter by tag">
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-flag"></i> Status</label>
+                    <select id="statusFilter">
+                        <option value="">All</option>
+                        <option value="draft">Draft</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="published">Published</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-user"></i> Creator</label>
+                    <input type="text" id="creatorFilter" placeholder="Created by">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter" onclick="applyFilters()">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+                <button class="btn-reset" onclick="resetFilters()">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+        </div>
+
+        <div id="articlesGrid" class="articles-grid"></div>
+        <div id="pagination" class="pagination"></div>
+    </div>
+
+    <div id="articleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <div class="loading" id="articlesLoading">
+        <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+        <p>Loading articles...</p>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/view-articles.js"></script>
+</body>
+</html>

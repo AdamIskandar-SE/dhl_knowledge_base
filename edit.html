@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Article - DHL Knowledge Base</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-robot"></i> DHL KB Auto
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="upload.html">Upload</a>
+            <a href="view-articles.html">View Articles</a>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div>
+                <span id="userName"></span>
+                <div class="user-role" id="userRole"></div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-edit"></i> Edit Article</h2>
+                <p>Modify existing knowledge base article</p>
+            </div>
+            <div class="card-body">
+                <div class="success-message" id="successMsg"></div>
+                <div class="error-message" id="errorMsg"></div>
+
+                <form id="editForm">
+                    <div class="form-group">
+                        <label>Title <span style="color: red;">*</span></label>
+                        <input type="text" id="title" placeholder="Enter article title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Summary</label>
+                        <textarea id="summary" rows="3" placeholder="Brief summary of the article"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Content <span style="color: red;">*</span></label>
+                        <textarea id="content" rows="12" placeholder="Full article content..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tags (comma separated)</label>
+                        <input type="text" id="tags" placeholder="e.g., logistics, shipping, customs">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="status">
+                            <option value="draft">Draft</option>
+                            <option value="reviewed">Under Review</option>
+                            <option value="published">Published</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Version History -->
+                    <div class="version-history" id="versionHistory" style="display: none;">
+                        <strong><i class="fas fa-history"></i> Version History</strong>
+                        <div id="versionList"></div>
+                    </div>
+                    
+                    <div class="action-buttons" style="margin-top: 24px;">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="processWithAI()">
+                            <i class="fas fa-robot"></i> Enhance with AI
+                        </button>
+                        <button type="button" class="btn-outline" onclick="window.location.href='view-articles.html'">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+        <p>Loading article data...</p>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let currentArticleId = null;
+        let currentUser = null;
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!protectPage()) return;
+            
+            currentUser = getCurrentUser();
+            setupLogout();
+            
+            // Get article ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentArticleId = urlParams.get('id');
+            
+            if (!currentArticleId) {
+                showError('No article specified');
+                setTimeout(() => {
+                    window.location.href = 'view-articles.html';
+                }, 2000);
+                return;
+            }
+            
+            await loadArticle();
+        });
+        
+        async function loadArticle() {
+            showLoading(true);
+            
+            try {
+                const article = await getArticle(currentArticleId);
+                
+                if (!article) {
+                    showError('Article not found');
+                    setTimeout(() => {
+                        window.location.href = 'view-articles.html';
+                    }, 2000);
+                    return;
+                }
+                
+                // Populate form
+                document.getElementById('title').value = article.title || '';
+                document.getElementById('summary').value = article.summary || '';
+                document.getElementById('content').value = article.content || '';
+                document.getElementById('tags').value = (article.tags || []).join(', ');
+                document.getElementById('status').value = article.status || 'draft';
+                
+                // Show version history if available
+                if (article.versionHistory && article.versionHistory.length > 0) {
+                    const versionHistoryDiv = document.getElementById('versionHistory');
+                    const versionList = document.getElementById('versionList');
+                    
+                    versionList.innerHTML = article.versionHistory.map(v => `
+                        <div class="version-item">
+                            <strong>Version ${v.version}</strong> - ${v.status} 
+                            <span style="color: #999; font-size: 12px;">${formatDateTime(v.changedAt)}</span>
+                            <div style="font-size: 13px; margin-top: 4px; color: #666;">${truncateText(v.content, 100)}</div>
+                        </div>
+                    `).join('');
+                    
+                    versionHistoryDiv.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error loading article:', error);
+                showError('Failed to load article');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+            showLoading(true);
+            
+            const title = document.getElementById('title').value;
+            const summary = document.getElementById('summary').value;
+            const content = document.getElementById('content').value;
+            const tagsRaw = document.getElementById('tags').value;
+            const status = document.getElementById('status').value;
+            
+            if (!title || !content) {
+                showError('Please fill in both title and content');
+                showLoading(false);
+                return;
+            }
+            
+            const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()) : [];
+            
+            try {
+                const updatedArticle = await updateArticle(currentArticleId, {
+                    title,
+                    summary,
+                    content,
+                    tags,
+                    status,
+                    updatedBy: currentUser.username
+                });
+                
+                showSuccess('Article updated successfully!');
+                
+                setTimeout(() => {
+                    window.location.href = 'view-articles.html';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error updating article:', error);
+                showError('Failed to update article');
+            } finally {
+                showLoading(false);
+            }
+        });
+        
+        // AI Enhancement
+        async function processWithAI() {
+            const content = document.getElementById('content').value;
+            if (!content) {
+                showError('Please enter some content to enhance');
+                return;
+            }
+            
+            showLoading(true);
+            hideMessages();
+            
+            try {
+                const result = await processWithAI(content);
+                
+                if (result.title) {
+                    document.getElementById('title').value = result.title;
+                }
+                if (result.summary) {
+                    document.getElementById('summary').value = result.summary;
+                }
+                
+                showSuccess('AI enhancement complete! Review the suggested changes.');
+                
+            } catch (error) {
+                showError('AI processing failed. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function showLoading(show) {
+            const el = document.getElementById('loading');
+            if (el) {
+                el.classList.toggle('active', show);
+            }
+        }
+    </script>
+</body>
+</html>

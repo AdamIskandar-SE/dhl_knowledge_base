@@ -1,0 +1,43 @@
+<Activity x:Class="Update_WebApp" ...>
+    <Sequence>
+        
+        <ui:InArgument x:TypeArguments="x:Int32" x:Name="inArticleId" />
+        <ui:InArgument x:TypeArguments="x:String" x:Name="inContent" />
+        
+        <!-- Open Browser -->
+        <ui:OpenBrowser Url="http://localhost:3000/login.html" 
+                        BrowserType="Chrome"
+                        Private="False">
+            
+            <!-- Login to Web Application -->
+            <ui:TypeInto Target="{ui:Selector} Type='input', Id='username'"
+                         Text="admin"
+                         ClickBeforeTyping="True" />
+            
+            <ui:TypeInto Target="{ui:Selector} Type='input', Id='password'"
+                         Text="admin123"
+                         ClickBeforeTyping="True" />
+            
+            <ui:Click Target="{ui:Selector} Type='button', Class='login-btn'" />
+            
+            <!-- Wait for Dashboard to Load -->
+            <ui:WaitElementVisible Target="{ui:Selector} Class='dashboard-container'" Timeout="10000" />
+            
+            <!-- Navigate to Edit Page -->
+            <ui:NavigateTo Url="[&quot;http://localhost:3000/edit.html?id=&quot; + inArticleId.ToString()]" />
+            
+            <!-- Update Content -->
+            <ui:TypeInto Target="{ui:Selector} Id='content'"
+                         Text="[inContent]"
+                         ActivateBefore="True" />
+            
+            <!-- Update Status to Reviewed -->
+            <ui:Click Target="{ui:Selector} Id='submitReview'" />
+            
+            <!-- Logout -->
+            <ui:Click Target="{ui:Selector} Class='logout-btn'" />
+            
+        </ui:OpenBrowser>
+        
+    </Sequence>
+</Activity>

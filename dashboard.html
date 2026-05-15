@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DHL Knowledge Base</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-robot"></i> DHL KB Auto
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="active">Dashboard</a>
+            <a href="upload.html">Upload</a>
+            <a href="view-articles.html">View Articles</a>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div>
+                <span id="userName"></span>
+                <div class="user-role" id="userRole"></div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                <p>Common tasks to manage your knowledge base</p>
+            </div>
+            <div class="card-body">
+                <div class="action-buttons">
+                    <button class="btn-primary" onclick="window.location.href='upload.html'">
+                        <i class="fas fa-plus"></i> Create New Article
+                    </button>
+                    <button class="btn-secondary" onclick="window.location.href='view-articles.html'">
+                        <i class="fas fa-search"></i> Browse All Articles
+                    </button>
+                    <button class="btn-outline" onclick="refreshStats()">
+                        <i class="fas fa-sync-alt"></i> Refresh Stats
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+                <h2><i class="fas fa-clock"></i> Recent Articles</h2>
+                <p>Latest additions to your knowledge base</p>
+            </div>
+            <div class="card-body">
+                <div id="recentArticles"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="dashboardLoading">
+        <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+        <p>Loading dashboard...</p>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

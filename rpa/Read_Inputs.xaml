@@ -1,0 +1,131 @@
+<Activity x:Class="Read_File_Content" 
+    xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" 
+    xmlns:ui="http://schemas.uipath.com/workflow/activities" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    
+    <Sequence DisplayName="Read File Content">
+        
+        <!-- Input Arguments -->
+        <ui:InArgument x:TypeArguments="x:String" x:Name="inFilePath" />
+        
+        <!-- Output Arguments -->
+        <ui:OutArgument x:TypeArguments="x:String" x:Name="outFileContent" />
+        <ui:OutArgument x:TypeArguments="x:String" x:Name="outFileName" />
+        <ui:OutArgument x:TypeArguments="x:String" x:Name="outFileType" />
+        
+        <!-- Local Variables -->
+        <Sequence.Variables>
+            <Variable x:TypeArguments="x:String" Name="strExtension" />
+            <Variable x:TypeArguments="x:String" Name="strTextFromPdf" />
+            <Variable x:TypeArguments="x:String" Name="strTextFromDocx" />
+        </Sequence.Variables>
+        
+        <!-- Extract File Name and Extension -->
+        <ui:Assign x:TypeArguments="x:String" DisplayName="Get File Name">
+            <ui:To>[outFileName]</ui:To>
+            <ui:From>[Path.GetFileName(inFilePath)]</ui:From>
+        </ui:Assign>
+        
+        <ui:Assign x:TypeArguments="x:String" DisplayName="Get File Extension">
+            <ui:To>[strExtension]</ui:To>
+            <ui:From>[Path.GetExtension(inFilePath).ToLower()]</ui:From>
+        </ui:Assign>
+        
+        <ui:Assign x:TypeArguments="x:String" DisplayName="Set File Type">
+            <ui:To>[outFileType]</ui:To>
+            <ui:From>[strExtension.TrimStart(&quot;.&quot;)]</ui:From>
+        </ui:Assign>
+        
+        <!-- Read Based on File Type -->
+        <ui:Switch x:TypeArguments="x:String" 
+                   DisplayName="Switch by File Type" 
+                   Expression="[strExtension]">
+            
+            <!-- TXT Files -->
+            <ui:Switch.Case x:TypeArguments="x:String" Value=".txt">
+                <Sequence>
+                    <ui:ReadTextFile DisplayName="Read Text File" 
+                                     FileName="[inFilePath]" 
+                                     Encoding="UTF-8">
+                        <ui:ReadTextFile.Content>
+                            <OutArgument x:TypeArguments="x:String">[outFileContent]</OutArgument>
+                        </ui:ReadTextFile.Content>
+                    </ui:ReadTextFile>
+                </Sequence>
+            </ui:Switch.Case>
+            
+            <!-- PDF Files -->
+            <ui:Switch.Case x:TypeArguments="x:String" Value=".pdf">
+                <Sequence>
+                    <ui:ReadPdf DisplayName="Read PDF File" 
+                                FileName="[inFilePath]" 
+                                ExtractFormat="Text">
+                        <ui:ReadPdf.Text>
+                            <OutArgument x:TypeArguments="x:String">[outFileContent]</OutArgument>
+                        </ui:ReadPdf.Text>
+                    </ui:ReadPdf>
+                </Sequence>
+            </ui:Switch.Case>
+            
+            <!-- DOCX Files -->
+            <ui:Switch.Case x:TypeArguments="x:String" Value=".docx">
+                <Sequence>
+                    <ui:InvokePowerShell DisplayName="Extract DOCX Content" 
+                                         Command="[&quot;Add-Type -AssemblyName System.IO.Compression.FileSystem&#xA;$docxPath = '&quot; + inFilePath + &quot;'&#xA;$tempDir = Join-Path $env:TEMP 'docx_extract_' + [System.Guid]::NewGuid().ToString()&#xA;[System.IO.Compression.ZipFile]::ExtractToDirectory($docxPath, $tempDir)&#xA;$documentXml = Get-Content (Join-Path $tempDir 'word/document.xml') -Raw&#xA;$text = [regex]::Replace($documentXml, '&lt;[^&gt;]+&gt;', ' ')&#xA;$text = [regex]::Replace($text, '\s+', ' ')&#xA;$text.Trim()&quot;]">
+                        <ui:InvokePowerShell.Output>
+                            <OutArgument x:TypeArguments="x:String">[outFileContent]</OutArgument>
+                        </ui:InvokePowerShell.Output>
+                    </ui:InvokePowerShell>
+                </Sequence>
+            </ui:Switch.Case>
+            
+            <!-- Image Files (PNG, JPG, JPEG) -->
+            <ui:Switch.Case x:TypeArguments="x:String" Value=".png">
+                <Sequence>
+                    <ui:InvokeCode DisplayName="Convert Image to Base64 for AI" 
+                                   Code="Dim base64Image As String = Convert.ToBase64String(System.IO.File.ReadAllBytes(inFilePath))&#xA;outFileContent = base64Image" />
+                </Sequence>
+            </ui:Switch.Case>
+            
+            <ui:Switch.Case x:TypeArguments="x:String" Value=".jpg">
+                <Sequence>
+                    <ui:InvokeCode DisplayName="Convert JPG to Base64" 
+                                   Code="Dim base64Image As String = Convert.ToBase64String(System.IO.File.ReadAllBytes(inFilePath))&#xA;outFileContent = base64Image" />
+                </Sequence>
+            </ui:Switch.Case>
+            
+            <ui:Switch.Case x:TypeArguments="x:String" Value=".jpeg">
+                <Sequence>
+                    <ui:InvokeCode DisplayName="Convert JPEG to Base64" 
+                                   Code="Dim base64Image As String = Convert.ToBase64String(System.IO.File.ReadAllBytes(inFilePath))&#xA;outFileContent = base64Image" />
+                </Sequence>
+            </ui:Switch.Case>
+            
+            <!-- Default Case -->
+            <ui:Switch.Case x:TypeArguments="x:String" Value="Default">
+                <ui:ReadTextFile DisplayName="Read as Text File" 
+                                 FileName="[inFilePath]" 
+                                 Encoding="UTF-8">
+                    <ui:ReadTextFile.Content>
+                        <OutArgument x:TypeArguments="x:String">[outFileContent]</OutArgument>
+                    </ui:ReadTextFile.Content>
+                </ui:ReadTextFile>
+            </ui:Switch.Case>
+            
+        </ui:Switch>
+        
+        <!-- Handle Empty Content -->
+        <ui:If Condition="[String.IsNullOrWhiteSpace(outFileContent)]" DisplayName="Check Empty Content">
+            <ui:If.Then>
+                <ui:Assign x:TypeArguments="x:String" DisplayName="Set Default Content">
+                    <ui:To>[outFileContent]</ui:To>
+                    <ui:From>"No extractable content found in file."</ui:From>
+                </ui:Assign>
+            </ui:If.Then>
+        </ui:If>
+        
+        <ui:WriteLine DisplayName="Log File Read" 
+                      Text="[&quot;[INFO] Read file: &quot; + outFileName + &quot; (&quot; + outFileContent.Length.ToString() + &quot; chars)&quot;]" />
+        
+    </Sequence>
+</Activity>
